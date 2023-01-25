@@ -13,14 +13,6 @@ class BloxPluginCompute implements BloxPluginInterface {
 	parser: Parser
 
 	constructor(parser: Parser) {
-		parser.functions.internal_invokeFunctions = (...inFunctions: Function[]) => {
-			return () => {
-				for (let f = 0; f < inFunctions.length; f += 1) {
-					const fn = inFunctions[f]
-					fn()
-				}
-			}
-		}
 		this.parser = parser
 	}
 

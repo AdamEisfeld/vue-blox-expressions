@@ -1,9 +1,9 @@
 import { BloxPluginCompute, getPluginCompute } from './classes/BloxPluginCompute'
-import { BloxPluginEmit, getPluginEmit } from './classes/BloxPluginEmit'
+import { BloxPluginEvent, getPluginEvent } from './classes/BloxPluginEvent'
 
 export {
 	BloxPluginCompute,
 	getPluginCompute,
-	BloxPluginEmit,
-	getPluginEmit
+	BloxPluginEvent,
+	getPluginEvent
 }

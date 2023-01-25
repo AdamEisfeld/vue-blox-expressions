@@ -5,7 +5,7 @@ import { BloxComponent } from 'vue-blox'
 import { BloxError } from 'vue-blox'
 import { Parser } from 'expr-eval'
 import { BloxPluginCompute } from '../src/classes/BloxPluginCompute'
-import { BloxPluginEmit } from '../src/classes/BloxPluginEmit'
+import { BloxPluginEvent } from '../src/classes/BloxPluginEvent'
 
 export default defineComponent({
 	name: 'App',
@@ -22,6 +22,10 @@ export default defineComponent({
 			foo: 'Tom',
 			baz: 'Joey',
 			score: 0,
+			"msgSuccess": "You are not old enough for a seniors discount",
+			"msgFailure": "Discount applied!",
+			"a" : 1,
+			"b": 2,
 		})
 
 		// 2. Construct view
@@ -31,19 +35,25 @@ export default defineComponent({
 			'slot:children': [
 				{
 					type: 'button',
-					'on:send-something': 'score > 5 ? foo(1) : bar(2)',
+					'event:on:sendsomething': "console('User clicked!');",
 					'bind:message': 'foo',
 					'bind:count': 'score',
 				},
 				{
 					type: 'button',
-					'compute:message': 'score > 5 ? "Yes" : "No"',
+					'message': "1",
 					'bind:count': 'score',
 				}
 			]
 		}
 
 		const parser = new Parser()
+		parser.functions.pythagorean = (x: number, y: number) => {
+			return Math.sqrt(x * x + y * y)
+		}
+		parser.functions.console = (message: any) => {
+			console.log(message)
+		}
 
 		parser.functions.foo = (x: number) => {
 			console.log(`clicked ${x}`)
@@ -67,7 +77,7 @@ export default defineComponent({
 
 		const plugins = [
 			new BloxPluginCompute(parser),
-			new BloxPluginEmit(parser)
+			new BloxPluginEvent(parser)
 		]
 
 		return {

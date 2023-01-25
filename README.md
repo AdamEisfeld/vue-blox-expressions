@@ -1,5 +1,5 @@
 
-<img src="https://user-images.githubusercontent.com/2840242/207716387-7ff01edc-1718-4e4c-87d7-40fb917dd937.png" alt="VueBlox" width="200"/>
+<img src="https://user-images.githubusercontent.com/2840242/214480114-5a51ab7d-fed8-4e01-97ed-639d086563e5.png" alt="VueBlox" width="200"/>
 
 A plugin for Vue Blox that enables runtime scripting / expressions via the expr-eval npm package.
   
@@ -18,4 +18,4 @@ npm install expr-eval
 
 ## Documentation
 
-Please visit the vue-blox site at [vueblox.io](https://www.vueblox.io) for up-to-date docs and examples.
+Please visit the vue-blox site at [vueblox.io](https://www.vueblox.io/docs/plugins/plugin-expressions.html) for up-to-date docs and examples.

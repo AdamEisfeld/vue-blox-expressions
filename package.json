@@ -1,6 +1,6 @@
 {
 	"name": "vue-blox-expressions",
-	"version": "0.0.2",
+	"version": "0.0.7",
 	"author": "Adam Eisfeld",
 	"license": "MIT",
 	"description": "Adds scripting support to vue-blox.",

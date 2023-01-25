@@ -2,7 +2,6 @@
 import type { BloxPluginInterface } from 'vue-blox'
 import { BloxError } from 'vue-blox'
 import type { Parser } from 'expr-eval'
-import { toRaw } from 'vue'
 
 /**
  * A key plugin that searches for keys that start with 'on:' and prepares the resulting prop to be a function that invokes the evaluation of the value string
@@ -16,11 +15,11 @@ class BloxPluginCompute implements BloxPluginInterface {
 		this.parser = parser
 	}
 
-	run(key: string, value: any, variables: any, setProp: (key: string, value: any) => void, setSlot: (slotName: string, views: any[]) => void ): void {
+	run(key: string, value: any, variables: any, setProp: (key: string, value: any) => void, setSlot: (slotName: string, views: any[]) => void ): { key: string, value: any } {
 
 		const computeSpecifier = 'compute:'
 		if (!key.startsWith(computeSpecifier)) {
-			return
+			return { key, value }
 		}
 
 		// This is an emit prop. 
@@ -43,14 +42,13 @@ class BloxPluginCompute implements BloxPluginInterface {
 			throw new BloxError(
 				'Expression parsing failed.',
 				`The call to parser.evaluate() for value ${value} was aborted because prototype access was detected.`,
-				undefined
+				{ key, value }
 			)
 		}
 
 		// 3. Construct getter / setter props for v-bind
 
-		const unreactiveVariables = {}
-		Object.assign(unreactiveVariables, toRaw(variables))
+		const unreactiveVariables = JSON.parse(JSON.stringify(variables ?? {}))
 
 		try {
 			const result = this.parser.evaluate(expressionString, unreactiveVariables)
@@ -59,8 +57,13 @@ class BloxPluginCompute implements BloxPluginInterface {
 			throw new BloxError(
 				'Expression parsing failed.',
 				`The call to parser.evaluate() for value ${value} threw the error: ${error}`,
-				undefined
+				{ key, value }
 			)
+		}
+
+		return {
+			key: propName,
+			value: value
 		}
 		
 	}

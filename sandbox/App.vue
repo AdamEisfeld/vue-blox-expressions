@@ -1,11 +1,14 @@
 <script lang="ts">
 
-import { defineComponent, watch, reactive } from 'vue'
+import { defineComponent, reactive } from 'vue'
 import { BloxComponent } from 'vue-blox'
-import { BloxError } from 'vue-blox'
 import { Parser } from 'expr-eval'
 import { BloxPluginCompute } from '../src/classes/BloxPluginCompute'
 import { BloxPluginEvent } from '../src/classes/BloxPluginEvent'
+import StackComponent from './components/StackComponent.vue'
+import LabelComponent from './components/LabelComponent.vue'
+import ButtonComponent from './components/ButtonComponent.vue'
+import CounterComponent from './components/CounterComponent.vue'
 
 export default defineComponent({
 	name: 'App',
@@ -15,64 +18,52 @@ export default defineComponent({
 	props: {},
 	setup() {
 
-		// 1. Construct variables
+		// 1. Catalog
+
+		const catalog = {
+			'stack': StackComponent,
+			'label': LabelComponent,
+			'button': ButtonComponent,
+			'counter': CounterComponent
+		}
 		
-		const variables: any = reactive({
-			bar: 'Adam',
-			foo: 'Tom',
-			baz: 'Joey',
+		// 2. Construct variables
+		
+		const variables = reactive({
+			name: 'Adam',
 			score: 0,
-			"msgSuccess": "You are not old enough for a seniors discount",
-			"msgFailure": "Discount applied!",
-			"a" : 1,
-			"b": 2,
 		})
 
-		// 2. Construct view
+		// 3. Construct view
 
-		const view: any = {
+		const view = reactive({
 			type: 'stack',
 			'slot:children': [
 				{
-					type: 'button',
-					'event:on:sendsomething': "console('User clicked!');",
-					'bind:message': 'foo',
+					type: 'label',
+					'compute:text': 'score + 5',
+				},
+				{
+					type: 'label',
+					'compute:text': 'score > 0 ? "Your score is > 0" : "Your score is 0"',
+				},
+				{
+					type: 'counter',
 					'bind:count': 'score',
 				},
 				{
 					type: 'button',
-					'message': "1",
-					'bind:count': 'score',
-				}
+					title: 'Click Me',
+					'event:clicked': 'console("User clicked the button!")',
+				},
 			]
-		}
-
-		const parser = new Parser()
-		parser.functions.pythagorean = (x: number, y: number) => {
-			return Math.sqrt(x * x + y * y)
-		}
-		parser.functions.console = (message: any) => {
-			console.log(message)
-		}
-
-		parser.functions.foo = (x: number) => {
-			console.log(`clicked ${x}`)
-		}
-		parser.functions.bar = (x: number) => {
-			console.log(`clicked again ${x}`)
-		}
-
-		watch(variables, () => {
-			console.log('Changes have been made!')
 		})
 
-		const onError = (error: any) => {
-			const bloxError = BloxError.asBloxError(error)
-			if (bloxError) {
-				console.log(bloxError.debugMessage)
-			} else {
-				console.log(error)
-			}
+		// 4. Construct plugins
+		
+		const parser = new Parser()
+		parser.functions.console = (message: any) => {
+			console.log(message)
 		}
 
 		const plugins = [
@@ -81,9 +72,9 @@ export default defineComponent({
 		]
 
 		return {
+			catalog,
 			variables,
 			view,
-			onError,
 			plugins,
 		}
 	},
@@ -91,7 +82,10 @@ export default defineComponent({
 </script>
 
 <template>
-	<main>
-		<BloxComponent :view="view" :variables="variables" @on:error="onError" :plugins="plugins"/>
+	<main style="padding: 48px; display: flex; flex-wrap: no-wrap; flex-direction: column; align-items: center; gap: 48px;">
+		<img src="/logoExpressions.png" width="200"/>
+		<div style="padding: 24px; border-style: solid; border-color: gray; border-radius: 12px;">
+			<BloxComponent :catalog="catalog" :view="view" :variables="variables" :plugins="plugins"/>
+		</div>
 	</main>
 </template>

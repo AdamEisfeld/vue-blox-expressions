@@ -1,6 +1,6 @@
 {
 	"name": "vue-blox-expressions",
-	"version": "0.1.0",
+	"version": "0.2.1",
 	"author": "Adam Eisfeld",
 	"license": "MIT",
 	"description": "Adds scripting support to vue-blox.",
@@ -50,6 +50,6 @@
 	"peerDependencies": {
 		"expr-eval": "^2.0.2",
 		"vue": "^3.2.45",
-		"vue-blox": "^0.6.9"
+		"vue-blox": "^0.7.0"
 	}
 }

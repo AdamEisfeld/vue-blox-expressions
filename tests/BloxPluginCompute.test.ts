@@ -1,7 +1,7 @@
 import { test, expect } from 'vitest'
 import { BloxPluginCompute } from '../src/classes/BloxPluginCompute'
-import { BloxError } from 'vue-blox'
 import { Parser } from 'expr-eval'
+import { BloxContext } from 'vue-blox'
 
 test('Compute plugin does nothing when specifier not provided', async () => {
 
@@ -9,26 +9,23 @@ test('Compute plugin does nothing when specifier not provided', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginCompute(parser)
-
-	let didSetProp: boolean = false
-	let didSetSlot: boolean = false
-
-	const setProp = (propName: string, value: any) => {
-		didSetProp = true
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		didSetSlot = true
-	}
+	const context = new BloxContext()
 
 	// When
 
-	plugin.run('foo:message', '1 + 1', {}, setProp, setSlot)
+	plugin.run({
+		context: context,
+		key: 'foo:message',
+		value: '1 + 1',
+		variables: {},
+		buildContext: () => {
+			return undefined
+		}
+	})
 
 	// Then
 
-	expect(didSetProp).toBeFalsy()
-	expect(didSetSlot).toBeFalsy()
+	expect(context.props['foo:message']).toBeUndefined()
 
 })
 
@@ -38,29 +35,23 @@ test('Compute plugin renders simple expression', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginCompute(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
-	plugin.run('compute:message', '1 + 1', {}, setProp, setSlot)
+	plugin.run({
+		context: context,
+		key: 'compute:message',
+		value: '1 + 1',
+		variables: {},
+		buildContext: () => {
+			return undefined
+		}
+	})
 
 	// Then
 
-	expect(computedProps.message).toBe(2)
+	expect(context.props.message).toEqual(2)
 
 })
 
@@ -71,29 +62,23 @@ test('Compute plugin renders simple expression with undefined variables', async 
 
 	const parser = new Parser()
 	const plugin = new BloxPluginCompute(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
-	plugin.run('compute:message', '1 + 1', undefined, setProp, setSlot)
+	plugin.run({
+		context: context,
+		key: 'compute:message',
+		value: '1 + 1',
+		variables: undefined,
+		buildContext: () => {
+			return undefined
+		}
+	})
 
 	// Then
 
-	expect(computedProps.message).toBe(2)
+	expect(context.props.message).toEqual(2)
 
 })
 
@@ -103,32 +88,26 @@ test('Compute plugin can reference variables', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginCompute(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
-	plugin.run('compute:message', 'x * y', {
-		x: 2,
-		y: 4
-	}, setProp, setSlot)
+	plugin.run({
+		context: context,
+		key: 'compute:message',
+		value: 'x * y',
+		variables: {
+			x: 2,
+			y: 4
+		},
+		buildContext: () => {
+			return undefined
+		}
+	})
 
 	// Then
 
-	expect(computedProps.message).toBe(8)
+	expect(context.props.message).toEqual(8)
 
 })
 
@@ -138,44 +117,31 @@ test('Compute plugin emits error with invalid evaluation string', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginCompute(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
 	let error: any = undefined
 
 	try {
-		plugin.run('compute:message', 'should fail', {
-			x: 2,
-			y: 4
-		}, setProp, setSlot)
+		plugin.run({
+			context: context,
+			key: 'compute:message',
+			value: 'should fail',
+			variables: undefined,
+			buildContext: () => {
+				return undefined
+			}
+		})
+
 	} catch(thrownError) {
 		error = thrownError
 	}
 
-	const bloxError = BloxError.asBloxError(error)
-
 	// Then
 
 	expect(error).toBeDefined()
-	expect(bloxError).toBeDefined()
-	expect(bloxError?.debugMessage).toContain('The call to parser.evaluate()')
-	expect(bloxError?.context?.key).toEqual('compute:message')
-	expect(bloxError?.context?.value).toEqual('should fail')
+	expect(error?.message).toContain('The call to parser.evaluate()')
 
 })
 
@@ -185,44 +151,33 @@ test('Compute plugin emits error with empty prop name', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginCompute(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
 	let error: any = undefined
 
 	try {
-		plugin.run('compute:', '1 + 1', {
-			x: 2,
-			y: 4
-		}, setProp, setSlot)
+		plugin.run({
+			context: context,
+			key: 'compute:',
+			value: 'x * y',
+			variables: {
+				x: 2,
+				y: 4
+			},
+			buildContext: () => {
+				return undefined
+			}
+		})
 	} catch(thrownError) {
 		error = thrownError
 	}
 
-	const bloxError = BloxError.asBloxError(error)
-
 	// Then
 
 	expect(error).toBeDefined()
-	expect(bloxError).toBeDefined()
-	expect(bloxError?.debugMessage).toContain('The value for the prop name for compute must be a string with length > 0.')
-	expect(bloxError?.context?.key).toEqual('compute:')
-	expect(bloxError?.context?.value).toEqual('1 + 1')
+	expect(error?.message).toContain('The value for the prop name for compute must be a string with length > 0.')
 
 })
 
@@ -232,43 +187,32 @@ test('Compute plugin emits error when attempting to use prototype pollution expl
 
 	const parser = new Parser()
 	const plugin = new BloxPluginCompute(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
 	let error: any = undefined
 
 	try {
-		plugin.run('compute:name', '__proto__', {
-			x: 2,
-			y: 4
-		}, setProp, setSlot)
+		plugin.run({
+			context: context,
+			key: 'compute:message',
+			value: '__proto__',
+			variables: {
+				x: 2,
+				y: 4
+			},
+			buildContext: () => {
+				return undefined
+			}
+		})
 	} catch(thrownError) {
 		error = thrownError
 	}
 
-	const bloxError = BloxError.asBloxError(error)
-
 	// Then
 
 	expect(error).toBeDefined()
-	expect(bloxError).toBeDefined()
-	expect(bloxError?.debugMessage).toContain('prototype access was detected')
-	expect(bloxError?.context?.key).toEqual('compute:name')
-	expect(bloxError?.context?.value).toEqual('__proto__')
+	expect(error?.message).toContain('prototype access was detected')
 
 })

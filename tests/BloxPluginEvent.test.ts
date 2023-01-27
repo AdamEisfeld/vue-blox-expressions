@@ -1,9 +1,8 @@
 import { test, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { BloxComponent } from 'vue-blox'
+import { BloxComponent, BloxContext } from 'vue-blox'
 import { BloxPluginEvent } from '../src/classes/BloxPluginEvent'
 import { reactive } from 'vue'
-import { BloxError } from 'vue-blox'
 import { Parser } from 'expr-eval'
 import TestButtonComponent from './TestButtonComponent.vue'
 
@@ -13,26 +12,23 @@ test('Event plugin does nothing when specifier not provided', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginEvent(parser)
-
-	let didSetProp: boolean = false
-	let didSetSlot: boolean = false
-
-	const setProp = (propName: string, value: any) => {
-		didSetProp = true
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		didSetSlot = true
-	}
+	const context = new BloxContext()
 
 	// When
 
-	plugin.run('foo:message', '1 + 1', {}, setProp, setSlot)
+	plugin.run({
+		context: context,
+		key: 'foo:message',
+		value: '1 + 1',
+		variables: {},
+		buildContext: () => {
+			return undefined
+		}
+	})
 
 	// Then
 
-	expect(didSetProp).toBeFalsy()
-	expect(didSetSlot).toBeFalsy()
+	expect(context.props.foo).toBeUndefined()
 
 })
 
@@ -42,29 +38,23 @@ test('Event plugin wires simple event', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginEvent(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
-	plugin.run('event:clicked', 'doSomething()', {}, setProp, setSlot)
+	plugin.run({
+		context: context,
+		key: 'event:clicked',
+		value: 'doSomething()',
+		variables: {},
+		buildContext: () => {
+			return undefined
+		}
+	})
 
 	// Then
 
-	expect(typeof computedProps['onClicked']).toEqual('function')
+	expect(typeof context.props['onClicked']).toEqual('function')
 
 })
 
@@ -74,29 +64,23 @@ test('Event plugin wires camelCase event', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginEvent(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
-	plugin.run('event:didClick', 'doSomething()', {}, setProp, setSlot)
+	plugin.run({
+		context: context,
+		key: 'event:didClick',
+		value: 'doSomething()',
+		variables: {},
+		buildContext: () => {
+			return undefined
+		}
+	})
 
 	// Then
 
-	expect(typeof computedProps['onDidClick']).toEqual('function')
+	expect(typeof context.props['onDidClick']).toEqual('function')
 
 })
 
@@ -106,29 +90,23 @@ test('Event plugin wires event with undefined variables', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginEvent(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
-	plugin.run('event:clicked', 'doSomething()', undefined, setProp, setSlot)
+	plugin.run({
+		context: context,
+		key: 'event:didClick',
+		value: 'doSomething()',
+		variables: undefined,
+		buildContext: () => {
+			return undefined
+		}
+	})
 
 	// Then
 
-	expect(typeof computedProps['onClicked']).toEqual('function')
+	expect(typeof context.props['onDidClick']).toEqual('function')
 
 })
 
@@ -217,15 +195,10 @@ test('Event plugin emits error with invalid evaluation string', async () => {
 	button.trigger('click')
 	await wrapper.vm.$nextTick()
 
-	const bloxError = BloxError.asBloxError(thrownError)
-
 	// Then
 
 	expect(thrownError).toBeDefined()
-	expect(bloxError).toBeDefined()
-	expect(bloxError?.debugMessage).toContain('The call to parser.evaluate()')
-	expect(bloxError?.context?.key).toEqual('event:clicked')
-	expect(bloxError?.context?.value).toEqual('shouldFail()')
+	expect(thrownError?.message).toContain('The call to parser.evaluate()')
 
 })
 
@@ -235,44 +208,30 @@ test('Event plugin emits error with empty event name', async () => {
 
 	const parser = new Parser()
 	const plugin = new BloxPluginEvent(parser)
-
-	const computedProps: Record<string, any> = {}
-	const computedSlots: Record<string, any[]> = {}
-	
-	const setProp = (propName: string, value: any) => {
-		if (value) {
-			computedProps[propName] = value
-		} else {
-			delete computedProps[propName]
-		}
-	}
-
-	const setSlot = (slotName: string, views: any[]) => {
-		computedSlots[slotName] = views
-	}
+	const context = new BloxContext()
 
 	// When
 
-	let error: any = undefined
+	let thrownError: any = undefined
 
 	try {
-		plugin.run('event:', '1 + 1', {
-			x: 2,
-			y: 4
-		}, setProp, setSlot)
-	} catch(thrownError) {
-		error = thrownError
+		plugin.run({
+			context: context,
+			key: 'event:',
+			value: 'doSomething()',
+			variables: {},
+			buildContext: () => {
+				return undefined
+			}
+		})
+	} catch(error) {
+		thrownError = error
 	}
-
-	const bloxError = BloxError.asBloxError(error)
 
 	// Then
 
-	expect(error).toBeDefined()
-	expect(bloxError).toBeDefined()
-	expect(bloxError?.debugMessage).toContain('The value for the prop name for event must be a string with length > 0.')
-	expect(bloxError?.context?.key).toEqual('event:')
-	expect(bloxError?.context?.value).toEqual('1 + 1')
+	expect(thrownError).toBeDefined()
+	expect(thrownError?.message).toContain('The value for the prop name for event must be a string with length > 0.')
 
 })
 
@@ -320,14 +279,9 @@ test('Event plugin emits error when attempting to use prototype pollution exploi
 	button.trigger('click')
 	await wrapper.vm.$nextTick()
 
-	const bloxError = BloxError.asBloxError(thrownError)
-
 	// Then
 
 	expect(thrownError).toBeDefined()
-	expect(bloxError).toBeDefined()
-	expect(bloxError?.debugMessage).toContain('The call to parser.evaluate()')
-	expect(bloxError?.context?.key).toEqual('event:clicked')
-	expect(bloxError?.context?.value).toEqual('__proto__()')
+	expect(thrownError?.message).toContain('The call to parser.evaluate()')
 
 })

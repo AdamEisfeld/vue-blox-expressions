@@ -1,6 +1,5 @@
 
-import type { BloxPluginInterface } from 'vue-blox'
-import { BloxError } from 'vue-blox'
+import type { BloxPluginInterface, BloxContext } from 'vue-blox'
 import type { Parser } from 'expr-eval'
 
 /**
@@ -15,11 +14,11 @@ class BloxPluginCompute implements BloxPluginInterface {
 		this.parser = parser
 	}
 
-	run(key: string, value: any, variables: any, setProp: (key: string, value: any) => void, setSlot: (slotName: string, views: any[]) => void ): { key: string, value: any } {
+	run({ context, key, value, variables, buildContext }: { context: BloxContext, key: string, value: any, variables: any, buildContext: ({ view, variables }: { view: any, variables: any }) => BloxContext | undefined }) {	
 
 		const computeSpecifier = 'compute:'
 		if (!key.startsWith(computeSpecifier)) {
-			return { key, value }
+			return
 		}
 
 		// This is an emit prop. 
@@ -27,23 +26,13 @@ class BloxPluginCompute implements BloxPluginInterface {
 		// 1. Get the prop name
 		const propName = key.substring(computeSpecifier.length, key.length)
 		if (propName.length === 0) {
-			throw new BloxError(
-				'Compute parsing failed.',
-				`The value for the prop name for compute must be a string with length > 0.`,
-				{
-					key, value
-				}
-			)
+			throw new Error(`The value for the prop name for compute must be a string with length > 0.`)
 		}
 
 		// 2. The value for the key is the value we want to evaluate when the event is emitted
 		const expressionString = value
 		if (/^__proto__|prototype|constructor$/.test(expressionString)) {
-			throw new BloxError(
-				'Expression parsing failed.',
-				`The call to parser.evaluate() for value ${value} was aborted because prototype access was detected.`,
-				{ key, value }
-			)
+			throw new Error(`The call to parser.evaluate() for value ${value} was aborted because prototype access was detected.`)
 		}
 
 		// 3. Construct getter / setter props for v-bind
@@ -52,18 +41,12 @@ class BloxPluginCompute implements BloxPluginInterface {
 
 		try {
 			const result = this.parser.evaluate(expressionString, unreactiveVariables)
-			setProp(propName, result)
+			context.setProp({
+				propName: propName,
+				value: result
+			})
 		} catch(error) {
-			throw new BloxError(
-				'Expression parsing failed.',
-				`The call to parser.evaluate() for value ${value} threw the error: ${error}`,
-				{ key, value }
-			)
-		}
-
-		return {
-			key: propName,
-			value: value
+			throw new Error(`The call to parser.evaluate() for value ${value} threw the error: ${error}`)
 		}
 		
 	}

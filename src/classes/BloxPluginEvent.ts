@@ -1,6 +1,5 @@
 
-import type { BloxPluginInterface } from 'vue-blox'
-import { BloxError } from 'vue-blox'
+import type { BloxPluginInterface, BloxContext } from 'vue-blox'
 import type { Parser } from 'expr-eval'
 
 /**
@@ -15,11 +14,11 @@ class BloxPluginEvent implements BloxPluginInterface {
 		this.parser = parser
 	}
 
-	run(key: string, value: any, variables: any, setProp: (key: string, value: any) => void, setSlot: (slotName: string, views: any[]) => void ): { key: string, value: any } {
+	run({ context, key, value, variables, buildContext }: { context: BloxContext, key: string, value: any, variables: any, buildContext: ({ view, variables }: { view: any, variables: any }) => BloxContext | undefined }) {	
 	
 		const emitSpecifier = 'event:'
 		if (!key.startsWith(emitSpecifier)) {
-			return { key, value }
+			return
 		}
 
 		// This is an event prop. 
@@ -27,11 +26,7 @@ class BloxPluginEvent implements BloxPluginInterface {
 		// 1. Get the event name
 		const eventName = key.substring(emitSpecifier.length, key.length)
 		if (eventName.length === 0) {
-			throw new BloxError(
-				'Emit parsing failed.',
-				`The value for the prop name for event must be a string with length > 0.`,
-				{ key, value }
-			)
+			throw new Error(`The value for the prop name for event must be a string with length > 0.`)
 		}
 
 		// 2. The value for the key is the value we want to evaluate when the event is emitted
@@ -42,38 +37,28 @@ class BloxPluginEvent implements BloxPluginInterface {
 		// 3. Construct getter / setter props for v-bind
 		const unreactiveVariables = JSON.parse(JSON.stringify(variables ?? {}))
 		
-		setProp(formattedEventName, (...args: any[]) => {
+		context.setProp({
+			propName: formattedEventName,
+			value: (...args: any[]) => {
 
-			if (/^__proto__|prototype|constructor$/.test(expressionString)) {
-				throw new BloxError(
-					'Expression parsing failed.',
-					`The call to parser.evaluate() for value ${value} was aborted because prototype access was detected.`,
-					{ key, value }
-				)
-			}
-
-			// Push the args from the emit event into unreactiveVariables so they can be referenced in the expression
-			Object.assign(unreactiveVariables, args)
-			
-			try {
-				this.parser.functions.setVariable = (key: string, value: any) => {
-					variables[key] = value
+				if (/^__proto__|prototype|constructor$/.test(expressionString)) {
+					throw new Error(`The call to parser.evaluate() for value ${value} was aborted because prototype access was detected.`)
 				}
-				this.parser.evaluate(expressionString, unreactiveVariables)
-			} catch(error) {
-				throw new BloxError(
-					'Expression parsing failed.',
-					`The call to parser.evaluate() for value ${value} threw the error: ${error}`,
-					{ key, value }
-				)
+
+				// Push the args from the emit event into unreactiveVariables so they can be referenced in the expression
+				Object.assign(unreactiveVariables, args)
+				
+				try {
+					this.parser.functions.setVariable = (key: string, value: any) => {
+						variables[key] = value
+					}
+					this.parser.evaluate(expressionString, unreactiveVariables)
+				} catch(error) {
+					throw new Error(`The call to parser.evaluate() for value ${value} threw the error: ${error}`)
+				}
+				
 			}
-
 		})
-
-		return {
-			key: eventName,
-			value: value
-		}
 		
 	}
 
